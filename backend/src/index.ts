@@ -1,8 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { staticPlugin } from "@elysiajs/static";
 import { join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync } from "fs";
 
 import { runMigrations } from "./db/client";
 import { camerasRoute } from "./routes/cameras";
@@ -43,33 +42,42 @@ const app = new Elysia()
   .use(streamsRoute)
   .use(onvifRoute);
 
-// Serve frontend build in production
 const frontendDist = join(import.meta.dir, "../../frontend/dist");
-if (existsSync(frontendDist)) {
-  const indexHtml = readFileSync(join(frontendDist, "index.html"), "utf8");
-  app
-    .use(staticPlugin({ assets: frontendDist, prefix: "/" }))
-    .get("*", ({ request }) => {
-      const { pathname } = new URL(request.url);
-      if (pathname.includes(".")) return new Response("Not found", { status: 404 });
-      return new Response(indexHtml, { headers: { "Content-Type": "text/html" } });
-    });
-} else {
-  console.warn("frontend/dist not found — run: cd frontend && bun run build");
-}
+const hasFrontend = existsSync(frontendDist);
+if (!hasFrontend) console.warn("frontend/dist not found — run: cd frontend && bun run build");
 
 const port = parseInt(process.env.PORT ?? "3001", 10);
+
+const API_PREFIXES = ["/api/", "/live/", "/vod/"];
 
 // 6. Bun.serve with WebSocket support
 Bun.serve({
   port,
-  fetch(req, server) {
-    const url = new URL(req.url);
-    if (url.pathname === "/ws") {
+  async fetch(req, server) {
+    const { pathname } = new URL(req.url);
+
+    if (pathname === "/ws") {
       const upgraded = server.upgrade(req, { data: null });
       if (upgraded) return undefined;
       return new Response("WebSocket upgrade failed", { status: 400 });
     }
+
+    // API routes → Elysia
+    if (API_PREFIXES.some((p) => pathname.startsWith(p))) {
+      return app.fetch(req);
+    }
+
+    // Static file serving via Bun.file (correct MIME types)
+    if (hasFrontend) {
+      if (pathname.includes(".")) {
+        const file = Bun.file(join(frontendDist, pathname));
+        if (await file.exists()) return new Response(file);
+        return new Response("Not found", { status: 404 });
+      }
+      // SPA fallback — all extensionless paths → index.html
+      return new Response(Bun.file(join(frontendDist, "index.html")));
+    }
+
     return app.fetch(req);
   },
   websocket: wsHandler,
