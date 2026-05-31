@@ -10,6 +10,11 @@ log()  { echo -e "${GREEN}[camfy]${NC} $*"; }
 warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
 die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
+# Guard: don't run as root — sudo strips PATH and loses bun
+if [[ $EUID -eq 0 ]]; then
+  die "Run as normal user, not root. Script uses sudo internally for systemd.\n  Usage: ./deploy.sh"
+fi
+
 # ── 1. Prerequisites ──────────────────────────────────────────────────────────
 log "Checking prerequisites..."
 command -v bun    >/dev/null 2>&1 || die "bun not found — install: curl -fsSL https://bun.sh/install | bash"
