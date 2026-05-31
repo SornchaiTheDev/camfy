@@ -1,0 +1,18 @@
+{
+  "name": "camfy",
+  "private": true,
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:backend": "cd backend && bun run --watch src/index.ts",
+    "dev:frontend": "cd frontend && bun run dev",
+    "build": "bun run build:frontend && bun run build:backend",
+    "build:backend": "cd backend && bun build src/index.ts --outdir dist --target bun",
+    "build:frontend": "cd frontend && bun run build",
+    "start": "cd backend && bun run dist/index.js",
+    "lint": "cd frontend && tsc --noEmit && cd ../backend && tsc --noEmit"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
