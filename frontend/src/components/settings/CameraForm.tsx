@@ -104,14 +104,26 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
       : name.trim() && onvifHost.trim() && selectedProfile;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-800 rounded-lg p-6 w-full max-w-lg shadow-xl overflow-y-auto max-h-[90vh]"
+        className="relative flex flex-col w-full max-w-lg h-full bg-gray-800 shadow-xl"
       >
-        <h3 className="text-white font-semibold mb-4">
-          {isEdit ? "Edit Camera" : "Add Camera"}
-        </h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 shrink-0">
+          <h3 className="text-white font-semibold">
+            {isEdit ? "Edit Camera" : "Add Camera"}
+          </h3>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-gray-400 hover:text-white transition-colors text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
         {/* Mode tabs */}
         {!isEdit && (
@@ -134,7 +146,6 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
           </div>
         )}
 
-        <div className="space-y-4">
           {/* ONVIF tab */}
           {mode === "onvif" && (
             <>
@@ -297,9 +308,10 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
               Enable recording
             </label>
           </div>
-        </div>
 
-        <div className="flex gap-3 justify-end mt-6">
+        </div>{/* end scrollable body */}
+
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-700 shrink-0">
           <button
             type="button"
             onClick={onCancel}
