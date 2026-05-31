@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { staticPlugin } from "@elysiajs/static";
 import { join } from "path";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 
 import { runMigrations } from "./db/client";
 import { camerasRoute } from "./routes/cameras";
@@ -46,7 +46,12 @@ const app = new Elysia()
 // Serve frontend build in production
 const frontendDist = join(import.meta.dir, "../../frontend/dist");
 if (existsSync(frontendDist)) {
-  app.use(staticPlugin({ assets: frontendDist, prefix: "/" }));
+  const indexHtml = readFileSync(join(frontendDist, "index.html"), "utf8");
+  app
+    .use(staticPlugin({ assets: frontendDist, prefix: "/" }))
+    .get("*", () => new Response(indexHtml, { headers: { "Content-Type": "text/html" } }));
+} else {
+  console.warn("frontend/dist not found — run: cd frontend && bun run build");
 }
 
 const port = parseInt(process.env.PORT ?? "3001", 10);
