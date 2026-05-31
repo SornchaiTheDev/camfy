@@ -49,7 +49,11 @@ if (existsSync(frontendDist)) {
   const indexHtml = readFileSync(join(frontendDist, "index.html"), "utf8");
   app
     .use(staticPlugin({ assets: frontendDist, prefix: "/" }))
-    .get("*", () => new Response(indexHtml, { headers: { "Content-Type": "text/html" } }));
+    .get("*", ({ request }) => {
+      const { pathname } = new URL(request.url);
+      if (pathname.includes(".")) return new Response("Not found", { status: 404 });
+      return new Response(indexHtml, { headers: { "Content-Type": "text/html" } });
+    });
 } else {
   console.warn("frontend/dist not found — run: cd frontend && bun run build");
 }
