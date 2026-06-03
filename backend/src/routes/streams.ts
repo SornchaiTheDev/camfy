@@ -58,7 +58,10 @@ export const streamsRoute = new Elysia()
     if (!(await file.exists())) return httpError(404, "Segment not found");
 
     set.headers["Content-Type"] = "video/mp2t";
-    set.headers["Cache-Control"] = "public, max-age=3600";
+    // Live segment filenames (live_%05d.ts) recycle: every ffmpeg respawn resets
+    // numbering to live_00000.ts. Caching them lets the browser serve a stale
+    // segment for a recycled name → black/frozen live view. Must not cache.
+    set.headers["Cache-Control"] = "no-cache, no-store";
     set.headers["Access-Control-Allow-Origin"] = "*";
     return file;
   })
