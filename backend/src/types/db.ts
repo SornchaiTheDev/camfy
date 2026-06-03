@@ -13,6 +13,7 @@ export type Camera = {
   onvif_username: string | null;
   onvif_password: string | null;
   onvif_profile_token: string | null;
+  onvif_serial: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -12,6 +12,8 @@ import { onvifRoute } from "./routes/onvif";
 import { wsHandler } from "./routes/ws";
 import { ffmpegManager } from "./services/ffmpeg/manager";
 import { startCron } from "./services/cron";
+import { autoRegisterCameras } from "./services/onvif/autoRegister";
+import db from "./db/client";
 
 // 1. Run DB migrations
 runMigrations();
@@ -21,6 +23,25 @@ startCron();
 
 // 3. Start all enabled cameras (async — resolves ONVIF URIs)
 ffmpegManager.startAll();
+
+// 3b. Auto-register new ONVIF cameras found on LAN
+(async () => {
+  try {
+    const uRow = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key='onvif_default_username'").get();
+    const pRow = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key='onvif_default_password'").get();
+    const username = uRow ? JSON.parse(uRow.value) : "admin";
+    const password = pRow ? JSON.parse(pRow.value) : "";
+    const result = await autoRegisterCameras(username, password);
+    if (result.registered.length > 0)
+      console.log(`Auto-registered ${result.registered.length} ONVIF camera(s):`, result.registered.map((c) => c.name).join(", "));
+    if (result.updated.length > 0)
+      console.log(`Updated IP for ${result.updated.length} ONVIF camera(s):`, result.updated.map((c) => c.name).join(", "));
+    if (result.failed.length > 0)
+      console.warn(`ONVIF auto-register failed for: ${result.failed.map((f) => `${f.host} (${f.error})`).join(", ")}`);
+  } catch (err) {
+    console.warn("ONVIF auto-register error:", (err as Error).message);
+  }
+})();
 
 // 4. Graceful shutdown
 process.on("SIGTERM", async () => {
