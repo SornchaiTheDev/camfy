@@ -41,7 +41,45 @@ export function CameraList({ cameras }: Props) {
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* Mobile: card list */}
+      <div className="space-y-2 sm:hidden">
+        {cameras.map((cam) => (
+          <div
+            key={cam.id}
+            className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-gray-900 dark:text-white font-medium">{cam.name}</span>
+              <Badge status={cam.status} />
+            </div>
+            <p className="text-gray-400 dark:text-gray-500 font-mono text-xs break-all">
+              {cam.rtsp_url}
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400 dark:text-gray-500 text-xs">
+                Chunk: {cam.chunk_secs ? `${cam.chunk_secs}s` : "global"}
+              </span>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setEditing(cam)}
+                  className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-xs"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleting(cam)}
+                  className="text-red-400 hover:text-red-500 transition-colors text-xs"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="overflow-x-auto hidden sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-gray-400 dark:text-gray-500 border-b border-gray-200 dark:border-gray-800">

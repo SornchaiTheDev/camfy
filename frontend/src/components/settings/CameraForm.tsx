@@ -110,7 +110,7 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
         onSubmit={handleSubmit}
         className="relative flex flex-col w-full max-w-lg h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-xl"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
           <h3 className="text-gray-900 dark:text-white font-semibold">
             {isEdit ? "Edit Camera" : "Add Camera"}
           </h3>
@@ -123,7 +123,7 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4">
 
           {!isEdit && (
             <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-5">
@@ -305,7 +305,7 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
 
         </div>
 
-        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
+        <div className="flex gap-3 justify-end px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
           <button
             type="button"
             onClick={onCancel}

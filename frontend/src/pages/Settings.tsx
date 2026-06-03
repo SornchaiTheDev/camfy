@@ -46,15 +46,15 @@ export function Settings() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6 max-w-4xl mx-auto">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 max-w-4xl mx-auto">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Settings</h1>
 
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-6">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-6 overflow-x-auto">
         {(["cameras", "policy", "discovery"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 pb-2 text-sm transition-colors ${
+            className={`px-3 sm:px-4 pb-2 text-sm whitespace-nowrap transition-colors ${
               tab === t
                 ? "text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white font-medium"
                 : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
@@ -67,7 +67,7 @@ export function Settings() {
 
       {tab === "cameras" && (
         <div>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <h2 className="text-sm text-gray-400 dark:text-gray-500">{cameras?.length ?? 0} camera(s)</h2>
             <div className="flex gap-2">
               <button
@@ -100,8 +100,8 @@ export function Settings() {
       )}
 
       {showAutoRegister && (
-        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-gray-900 dark:text-white font-semibold mb-1">Auto-Register ONVIF Cameras</h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
               Scans LAN for ONVIF cameras and registers new ones automatically.
