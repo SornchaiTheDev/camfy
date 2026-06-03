@@ -1,18 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 import type { Recording, RecordingsPage } from "../types";
 
-export function useRecordings(params: { camera_id?: string; date?: string; page?: number; limit?: number }) {
-  const qs = new URLSearchParams();
-  if (params.camera_id) qs.set("camera_id", params.camera_id);
-  if (params.date) qs.set("date", params.date);
-  if (params.page) qs.set("page", String(params.page));
-  if (params.limit) qs.set("limit", String(params.limit));
-
-  return useQuery<RecordingsPage>({
+export function useInfiniteRecordings(params: { camera_id?: string; date?: string; limit?: number }) {
+  const limit = params.limit ?? 50;
+  return useInfiniteQuery<RecordingsPage>({
     queryKey: ["recordings", params],
-    queryFn: () => apiFetch(`/api/recordings?${qs}`),
-    enabled: !!params.camera_id,
+    queryFn: ({ pageParam = 1 }) => {
+      const qs = new URLSearchParams();
+      if (params.camera_id) qs.set("camera_id", params.camera_id);
+      if (params.date) qs.set("date", params.date);
+      qs.set("page", String(pageParam));
+      qs.set("limit", String(limit));
+      return apiFetch(`/api/recordings?${qs}`);
+    },
+    getNextPageParam: (last) => {
+      const loaded = last.page * last.limit;
+      return loaded < last.total ? last.page + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
 }
 

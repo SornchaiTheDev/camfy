@@ -2,6 +2,14 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+@custom-variant xs (@media (width >= 480px));
+@custom-variant portrait (@media (orientation: portrait));
+@custom-variant landscape (@media (orientation: landscape));
+
 * {
   box-sizing: border-box;
+}
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }

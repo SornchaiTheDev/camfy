@@ -18,7 +18,7 @@ export function CameraCell({ camera }: Props) {
       <HLSPlayer src={streamSrc} className="w-full h-full" />
 
       {/* Name + status overlay */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent pointer-events-none opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
         <span className="text-white text-xs font-medium truncate drop-shadow">{camera.name}</span>
         <Badge status={status} />
       </div>

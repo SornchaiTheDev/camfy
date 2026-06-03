@@ -10,8 +10,8 @@ function AppShell() {
   useWebSocket();
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden">
-      <main className="flex-1 min-w-0 overflow-hidden">
+    <div className="flex h-[100dvh] bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden w-screen max-w-full">
+      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-hidden pb-16 sm:pb-0">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/recordings" element={<Recordings />} />

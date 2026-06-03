@@ -72,6 +72,7 @@ function ResizableCell({
 export function CameraGrid({ cameras }: Props) {
   const { widths, heights, setWidth, setHeight } = useGridStore();
   const containerRef = useRef<HTMLDivElement>(null);
+  const landscapeRef = useRef<HTMLDivElement>(null);
   const [defaultHeight, setDefaultHeight] = useState(window.innerHeight);
 
   useEffect(() => {
@@ -85,15 +86,19 @@ export function CameraGrid({ cameras }: Props) {
   }, []);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (e.shiftKey) return; // let shift+scroll do native horizontal
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    function attachWheel(el: HTMLDivElement | null) {
+      if (!el) return () => {};
+      const onWheel = (e: WheelEvent) => {
+        if (e.shiftKey) return;
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      };
+      el.addEventListener("wheel", onWheel, { passive: false });
+      return () => el.removeEventListener("wheel", onWheel);
+    }
+    const d1 = attachWheel(containerRef.current);
+    const d2 = attachWheel(landscapeRef.current);
+    return () => { d1(); d2(); };
   }, []);
 
   if (cameras.length === 0) {
@@ -109,25 +114,47 @@ export function CameraGrid({ cameras }: Props) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full overflow-auto"
-    >
-      <div
-        className="flex flex-row flex-nowrap items-start"
-        style={{ minHeight: "100%" }}
-      >
-        {cameras.map((camera) => (
-          <ResizableCell
-            key={camera.id}
-            camera={camera}
-            width={widths[camera.id] ?? DEFAULT_WIDTH}
-            height={heights[camera.id] ?? defaultHeight}
-            onWidthChange={(w) => setWidth(camera.id, w)}
-            onHeightChange={(h) => setHeight(camera.id, h)}
-          />
-        ))}
+    <>
+      {/* Mobile portrait: single column vertical scroll */}
+      <div className="sm:hidden portrait:block landscape:hidden h-full overflow-y-auto overflow-x-hidden">
+        <div className="flex flex-col gap-0.5 bg-gray-900">
+          {cameras.map((camera) => (
+            <div key={camera.id} className="w-full aspect-video bg-gray-900 shrink-0">
+              <CameraCell camera={camera} />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Mobile landscape: 2-row horizontal scroll */}
+      <div ref={landscapeRef} className="sm:hidden landscape:block portrait:hidden h-full overflow-x-auto overflow-y-hidden">
+        <div
+          className="grid grid-rows-2 grid-flow-col gap-0.5 bg-gray-900 h-full"
+          style={{ gridAutoColumns: "calc((100dvh - 1px) / 2 * (16 / 9))" }}
+        >
+          {cameras.map((camera) => (
+            <div key={camera.id} className="bg-gray-900 h-full">
+              <CameraCell camera={camera} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: resizable horizontal layout */}
+      <div ref={containerRef} className="hidden sm:block h-full overflow-auto">
+        <div className="flex flex-row flex-nowrap items-start" style={{ minHeight: "100%" }}>
+          {cameras.map((camera) => (
+            <ResizableCell
+              key={camera.id}
+              camera={camera}
+              width={widths[camera.id] ?? DEFAULT_WIDTH}
+              height={heights[camera.id] ?? defaultHeight}
+              onWidthChange={(w) => setWidth(camera.id, w)}
+              onHeightChange={(h) => setHeight(camera.id, h)}
+            />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }

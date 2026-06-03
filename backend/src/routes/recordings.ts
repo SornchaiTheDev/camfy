@@ -7,9 +7,15 @@ function notFound(msg = "Not found") {
   });
 }
 import { join } from "path";
-import { rmSync } from "fs";
+import { rmSync, mkdirSync } from "fs";
 import db from "../db/client";
 import type { Recording } from "../types/db";
+
+function getThumbPath(id: string): string {
+  const dir = join("/tmp", "camfy-thumbs");
+  mkdirSync(dir, { recursive: true });
+  return join(dir, `${id}.jpg`);
+}
 
 function getStoragePath(): string {
   const row = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key = 'storage_path'").get();
@@ -92,6 +98,76 @@ export const recordingsRoute = new Elysia({ prefix: "/api/recordings" })
       }),
     }
   )
+
+  .get("/:id/thumb", async ({ params, set }) => {
+    const rec = db.query<Recording, [string]>("SELECT * FROM recordings WHERE id = ?").get(params.id);
+    if (!rec) return notFound("Recording not found");
+
+    const thumbPath = getThumbPath(rec.id);
+
+    // Serve cached thumb if it exists
+    const cached = Bun.file(thumbPath);
+    if (await cached.exists()) {
+      set.headers["Content-Type"] = "image/jpeg";
+      set.headers["Cache-Control"] = "public, max-age=86400";
+      return cached;
+    }
+
+    const absPath = join(getStoragePath(), rec.segment_path);
+    if (!(await Bun.file(absPath).exists())) return notFound("File not found on disk");
+
+    const ffmpeg = Bun.spawn([
+      "ffmpeg", "-y",
+      "-loglevel", "error",
+      "-ss", "0",
+      "-i", absPath,
+      "-vframes", "1",
+      "-q:v", "4",
+      "-f", "image2",
+      thumbPath,
+    ], { stdout: "ignore", stderr: "ignore" });
+
+    await ffmpeg.exited;
+
+    const thumb = Bun.file(thumbPath);
+    if (!(await thumb.exists())) return notFound("Thumb generation failed");
+
+    set.headers["Content-Type"] = "image/jpeg";
+    set.headers["Cache-Control"] = "public, max-age=86400";
+    return thumb;
+  })
+
+  .get("/:id/stream", async ({ params, set }) => {
+    const rec = db.query<Recording, [string]>("SELECT * FROM recordings WHERE id = ?").get(params.id);
+    if (!rec) return notFound("Recording not found");
+
+    const absPath = join(getStoragePath(), rec.segment_path);
+    if (!(await Bun.file(absPath).exists())) return notFound("File not found on disk");
+
+    const tmpPath = join("/tmp", `camfy-stream-${rec.id}.mp4`);
+
+    // Remux to temp file so moov atom is written fully (enables seeking + correct duration)
+    const ffmpeg = Bun.spawn([
+      "ffmpeg", "-y",
+      "-loglevel", "error",
+      "-i", absPath,
+      "-c", "copy",
+      "-movflags", "+faststart",
+      tmpPath,
+    ], { stdout: "ignore", stderr: "ignore" });
+
+    await ffmpeg.exited;
+
+    const tmpFile = Bun.file(tmpPath);
+    if (!(await tmpFile.exists())) return notFound("Remux failed");
+
+    set.headers["Content-Type"] = "video/mp4";
+
+    // Clean up after 5 min — enough for any browser to finish downloading
+    setTimeout(() => { try { rmSync(tmpPath); } catch { /* ignore */ } }, 5 * 60 * 1000);
+
+    return tmpFile;
+  })
 
   .get("/:id/download", async ({ params, query, set }) => {
     const rec = db.query<Recording, [string]>("SELECT * FROM recordings WHERE id = ?").get(params.id);

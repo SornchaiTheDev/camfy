@@ -1,73 +1,72 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCameras } from "../api/cameras";
-import { useRecordings } from "../api/recordings";
-import { RecordingList } from "../components/recordings/RecordingList";
+import { useInfiniteRecordings } from "../api/recordings";
+import { RecordingFeed } from "../components/recordings/RecordingFeed";
 
 export function Recordings() {
   const { data: cameras } = useCameras();
-  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
-  const [date, setDate] = useState<string>("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [date, setDate] = useState("");
 
-  const { data, isLoading } = useRecordings({
-    camera_id: selectedCameraId || undefined,
+  const matchedCameraId = useMemo(() => {
+    if (!search.trim() || !cameras) return undefined;
+    const q = search.trim().toLowerCase();
+    const cam = cameras.find((c) => c.name.toLowerCase().includes(q));
+    return cam?.id;
+  }, [search, cameras]);
+
+  const { data, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage } = useInfiniteRecordings({
+    camera_id: matchedCameraId,
     date: date || undefined,
-    page,
-    limit: 50,
   });
 
+  const recordings = data?.pages.flatMap((p) => p.data) ?? [];
+  const hasFilter = !!search.trim() || !!date;
+
   return (
-    <div className="h-full overflow-y-auto p-6 max-w-5xl mx-auto">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Recordings</h1>
+    <div className="h-full overflow-y-auto overflow-x-hidden px-3 py-4 sm:p-6 max-w-5xl mx-auto w-full">
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recordings</h1>
 
-      <div className="flex gap-4 mb-6 flex-wrap">
-        <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Camera</label>
-          <select
-            value={selectedCameraId}
-            onChange={(e) => { setSelectedCameraId(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
-          >
-            <option value="">All cameras</option>
-            {cameras?.map((cam) => (
-              <option key={cam.id} value={cam.id}>{cam.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => { setDate(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
-          />
-        </div>
-
-        {(selectedCameraId || date) && (
-          <div className="flex items-end">
-            <button
-              onClick={() => { setSelectedCameraId(""); setDate(""); setPage(1); }}
-              className="px-3 py-2 text-sm text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-            >
-              Clear filters
-            </button>
+      {/* Filter bar */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-5">
+        <div className="flex gap-2 flex-1">
+          <div className="flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search camera..."
+              className="w-full px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+            />
           </div>
+          <div className="shrink-0">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+            />
+          </div>
+        </div>
+        {hasFilter && (
+          <button
+            onClick={() => { setSearch(""); setDate(""); }}
+            className="px-3 py-2 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors rounded-lg border border-gray-200 dark:border-gray-700 sm:border-transparent sm:hover:bg-transparent"
+          >
+            Clear
+          </button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="text-gray-400 text-sm">Loading...</div>
-      ) : !selectedCameraId ? (
-        <div className="text-gray-400 dark:text-gray-500 text-sm py-16 text-center">Select a camera to view recordings</div>
+        <div className="text-gray-400 text-sm py-8 text-center">Loading...</div>
       ) : (
-        <RecordingList
-          recordings={data?.data ?? []}
+        <RecordingFeed
+          recordings={recordings}
           cameras={cameras ?? []}
-          total={data?.total ?? 0}
-          page={page}
-          onPageChange={setPage}
+          hasNextPage={!!hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={fetchNextPage}
         />
       )}
     </div>

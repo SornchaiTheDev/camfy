@@ -20,6 +20,37 @@ import db from "./db/client";
 // 1. Run DB migrations
 runMigrations();
 
+// 1b. Backfill duration_sec for recordings that have none
+(async () => {
+  const storagePath = (() => {
+    const row = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key = 'storage_path'").get();
+    return row ? JSON.parse(row.value) : "./recordings";
+  })();
+
+  const rows = db.query<{ id: string; segment_path: string }, []>(
+    "SELECT id, segment_path FROM recordings WHERE duration_sec = 0"
+  ).all();
+
+  for (const row of rows) {
+    try {
+      const absPath = join(storagePath, row.segment_path);
+      const proc = Bun.spawn([
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        absPath,
+      ], { stdout: "pipe", stderr: "ignore" });
+      const text = await new Response(proc.stdout).text();
+      const val = parseFloat(text.trim());
+      if (!isNaN(val) && val > 0) {
+        db.run("UPDATE recordings SET duration_sec = ? WHERE id = ?", [Math.round(val), row.id]);
+      }
+    } catch { /* skip */ }
+  }
+
+  if (rows.length > 0) console.log(`Backfilled duration for ${rows.length} recording(s)`);
+})();
+
 // 2. Start cron
 startCron();
 

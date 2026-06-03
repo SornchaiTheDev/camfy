@@ -1,4 +1,3 @@
-import { HLSPlayer } from "../player/HLSPlayer";
 import type { Recording, CameraWithStatus } from "../../types";
 
 type Props = {
@@ -7,14 +6,6 @@ type Props = {
   onClose: () => void;
 };
 
-function getVodSrc(rec: Recording): string {
-  const parts = rec.segment_path.split("/");
-  if (parts.length < 2) return "";
-  const camId = parts[0];
-  const date = parts[1];
-  return `/vod/${camId}/${date}/archive.m3u8`;
-}
-
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -22,41 +13,52 @@ function formatBytes(bytes: number): string {
 }
 
 export function RecordingPlayer({ recording, camera, onClose }: Props) {
-  const src = getVodSrc(recording);
+  const src = `/api/recordings/${recording.id}/stream`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80">
+      {/* Tap backdrop to close */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 sm:rounded-xl w-full sm:max-w-3xl shadow-2xl overflow-hidden sm:mx-4">
+        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-          <div>
-            <span className="text-gray-900 dark:text-white font-medium">{camera.name}</span>
-            <span className="text-gray-400 dark:text-gray-500 text-sm ml-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-gray-900 dark:text-white font-medium truncate">{camera.name}</div>
+            <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
               {new Date(recording.recorded_at).toLocaleString()}
-            </span>
+              <span className="ml-2">{formatBytes(recording.size_bytes)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-400 dark:text-gray-500">{formatBytes(recording.size_bytes)}</span>
+          <div className="flex items-center gap-1 shrink-0 ml-3">
             <a
               href={`/api/recordings/${recording.id}/download`}
               download={`${recording.id}.mp4`}
-              className="text-xs text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title="Download"
             >
-              Download MP4
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
             </a>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors text-lg leading-none"
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              ×
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </div>
-        <HLSPlayer
+
+        <video
+          key={recording.id}
           src={src}
           className="w-full aspect-video bg-black"
-          muted={false}
           controls
           autoPlay
+          playsInline
         />
       </div>
     </div>

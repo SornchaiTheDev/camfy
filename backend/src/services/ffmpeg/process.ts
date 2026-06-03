@@ -6,6 +6,22 @@ import { broadcast } from "../ws-broadcaster";
 import db from "../../db/client";
 import { nanoid } from "nanoid";
 
+async function probeDuration(absPath: string): Promise<number> {
+  try {
+    const proc = Bun.spawn([
+      "ffprobe", "-v", "error",
+      "-show_entries", "format=duration",
+      "-of", "default=noprint_wrappers=1:nokey=1",
+      absPath,
+    ], { stdout: "pipe", stderr: "ignore" });
+    const text = await new Response(proc.stdout).text();
+    const val = parseFloat(text.trim());
+    return isNaN(val) ? 0 : Math.round(val);
+  } catch {
+    return 0;
+  }
+}
+
 type StreamEventPayload = {
   camera_id: string;
   event: "started" | "stopped" | "error" | "respawn";
@@ -166,7 +182,7 @@ export class CameraProcess {
     }
   }
 
-  private _onSegmentReady(absPath: string) {
+  private async _onSegmentReady(absPath: string) {
     try {
       const stat = Bun.file(absPath).size;
       if (stat === 0) return;
@@ -175,11 +191,13 @@ export class CameraProcess {
       const now = new Date().toISOString();
       const id = nanoid();
 
+      const duration = await probeDuration(absPath);
+
       const stmt = db.prepare(
-        `INSERT OR IGNORE INTO recordings (id, camera_id, segment_path, size_bytes, recorded_at)
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT OR IGNORE INTO recordings (id, camera_id, segment_path, duration_sec, size_bytes, recorded_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
       );
-      stmt.run(id, this.camera.id, relPath, stat, now);
+      stmt.run(id, this.camera.id, relPath, duration, stat, now);
 
       broadcast({ type: "new_segment", camera_id: this.camera.id, segment_path: relPath, recorded_at: now });
     } catch {
