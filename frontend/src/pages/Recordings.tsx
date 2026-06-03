@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useCameras } from "../api/cameras";
 import { useInfiniteRecordings } from "../api/recordings";
 import { RecordingFeed } from "../components/recordings/RecordingFeed";
+import { DatePicker } from "../components/ui/DatePicker";
 
 export function Recordings() {
   const { data: cameras } = useCameras();
@@ -24,7 +25,8 @@ export function Recordings() {
   const hasFilter = !!search.trim() || !!date;
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden px-3 py-4 sm:p-6 max-w-5xl mx-auto w-full">
+    <div className="h-full overflow-y-auto overflow-x-hidden">
+    <div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto w-full">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recordings</h1>
 
       {/* Filter bar */}
@@ -40,12 +42,7 @@ export function Recordings() {
             />
           </div>
           <div className="shrink-0">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
-            />
+            <DatePicker value={date} onChange={setDate} placeholder="Filter by date" />
           </div>
         </div>
         {hasFilter && (
@@ -69,6 +66,7 @@ export function Recordings() {
           onLoadMore={fetchNextPage}
         />
       )}
+    </div>
     </div>
   );
 }

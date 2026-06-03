@@ -43,6 +43,18 @@ function getDateKey(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA");
 }
 
+function getHourKey(iso: string): number {
+  return new Date(iso).getHours();
+}
+
+function formatHourHeading(hour: number): string {
+  const start = hour % 12 === 0 ? 12 : hour % 12;
+  const end = (hour + 1) % 12 === 0 ? 12 : (hour + 1) % 12;
+  const startSuffix = hour < 12 ? "AM" : "PM";
+  const endSuffix = hour + 1 < 12 ? "AM" : "PM";
+  return `${start}:00 ${startSuffix} – ${end}:00 ${endSuffix}`;
+}
+
 function RecordingCard({
   rec,
   camName,
@@ -162,50 +174,84 @@ export function RecordingFeed({ recordings, cameras, hasNextPage, isFetchingNext
     return <div className="text-gray-400 dark:text-gray-500 text-sm py-16 text-center">No recordings found</div>;
   }
 
-  const groups: { date: string; items: Recording[] }[] = [];
+  type HourGroup = { hour: number; items: Recording[] };
+  type DayGroup = { date: string; hours: HourGroup[] };
+
+  const groups: DayGroup[] = [];
   for (const rec of recordings) {
-    const key = getDateKey(rec.recorded_at);
-    const last = groups[groups.length - 1];
-    if (last && last.date === key) {
-      last.items.push(rec);
-    } else {
-      groups.push({ date: key, items: [rec] });
+    const dateKey = getDateKey(rec.recorded_at);
+    const hour = getHourKey(rec.recorded_at);
+
+    let dayGroup = groups[groups.length - 1];
+    if (!dayGroup || dayGroup.date !== dateKey) {
+      dayGroup = { date: dateKey, hours: [] };
+      groups.push(dayGroup);
     }
+
+    let hourGroup = dayGroup.hours[dayGroup.hours.length - 1];
+    if (!hourGroup || hourGroup.hour !== hour) {
+      hourGroup = { hour, items: [] };
+      dayGroup.hours.push(hourGroup);
+    }
+
+    hourGroup.items.push(rec);
   }
 
   const playingCamera = playing ? cameraMap.get(playing.camera_id) : null;
 
   return (
     <>
-      <div className="space-y-8 min-w-0 w-full">
-        {groups.map((group) => (
-          <div key={group.date}>
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                {formatDateHeading(group.date)}
-              </span>
-              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
-              <span className="text-xs text-gray-400 dark:text-gray-600">
-                {group.items.length} clip{group.items.length !== 1 ? "s" : ""}
-              </span>
-            </div>
+      <div className="space-y-10 min-w-0 w-full">
+        {groups.map((group) => {
+          const totalClips = group.hours.reduce((n, h) => n + h.items.length, 0);
+          return (
+            <div key={group.date}>
+              {/* Day heading */}
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  {formatDateHeading(group.date)}
+                </span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+                <span className="text-xs text-gray-400 dark:text-gray-600">
+                  {totalClips} clip{totalClips !== 1 ? "s" : ""}
+                </span>
+              </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {group.items.map((rec) => {
-                const cam = cameraMap.get(rec.camera_id);
-                return (
-                  <RecordingCard
-                    key={rec.id}
-                    rec={rec}
-                    camName={cam?.name ?? rec.camera_id}
-                    onPlay={() => setPlaying(rec)}
-                    onDelete={() => setDeleting(rec)}
-                  />
-                );
-              })}
+              {/* Hour sub-groups */}
+              <div className="space-y-6">
+                {group.hours.map((hourGroup) => (
+                  <div key={hourGroup.hour}>
+                    {/* Hour heading */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
+                        {formatHourHeading(hourGroup.hour)}
+                      </span>
+                      <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800/60" />
+                      <span className="text-xs text-gray-300 dark:text-gray-700">
+                        {hourGroup.items.length}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                      {hourGroup.items.map((rec) => {
+                        const cam = cameraMap.get(rec.camera_id);
+                        return (
+                          <RecordingCard
+                            key={rec.id}
+                            rec={rec}
+                            camName={cam?.name ?? rec.camera_id}
+                            onPlay={() => setPlaying(rec)}
+                            onDelete={() => setDeleting(rec)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div ref={sentinelRef} className="py-4 text-center">
