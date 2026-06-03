@@ -12,6 +12,7 @@ import { onvifRoute } from "./routes/onvif";
 import { systemRoute } from "./routes/system";
 import { wsHandler } from "./routes/ws";
 import { ffmpegManager } from "./services/ffmpeg/manager";
+import { probeDuration } from "./services/ffmpeg/process";
 import { startCron } from "./services/cron";
 import { autoRegisterCameras, deduplicateCameras } from "./services/onvif/autoRegister";
 import { startOnvifScanner } from "./services/onvif/scanner";
@@ -34,16 +35,9 @@ runMigrations();
   for (const row of rows) {
     try {
       const absPath = join(storagePath, row.segment_path);
-      const proc = Bun.spawn([
-        "ffprobe", "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        absPath,
-      ], { stdout: "pipe", stderr: "ignore" });
-      const text = await new Response(proc.stdout).text();
-      const val = parseFloat(text.trim());
-      if (!isNaN(val) && val > 0) {
-        db.run("UPDATE recordings SET duration_sec = ? WHERE id = ?", [Math.round(val), row.id]);
+      const val = await probeDuration(absPath);
+      if (val > 0) {
+        db.run("UPDATE recordings SET duration_sec = ? WHERE id = ?", [val, row.id]);
       }
     } catch { /* skip */ }
   }

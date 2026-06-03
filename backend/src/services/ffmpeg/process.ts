@@ -6,17 +6,24 @@ import { broadcast } from "../ws-broadcaster";
 import db from "../../db/client";
 import { nanoid } from "nanoid";
 
-async function probeDuration(absPath: string): Promise<number> {
+export async function probeDuration(absPath: string): Promise<number> {
   try {
+    // MPEG-TS reports an unreliable container `format=duration` (estimated from bitrate),
+    // so it disagreed with what the player shows. The player remuxes TS→mp4 (-c copy) and
+    // derives duration from real packet PTS. Mirror that here: copy-remux to null and read
+    // the actual end timestamp via -progress, so the stored duration matches playback.
     const proc = Bun.spawn([
-      "ffprobe", "-v", "error",
-      "-show_entries", "format=duration",
-      "-of", "default=noprint_wrappers=1:nokey=1",
-      absPath,
+      "ffmpeg", "-v", "error",
+      "-i", absPath,
+      "-c", "copy", "-f", "null",
+      "-progress", "pipe:1",
+      "-",
     ], { stdout: "pipe", stderr: "ignore" });
     const text = await new Response(proc.stdout).text();
-    const val = parseFloat(text.trim());
-    return isNaN(val) ? 0 : Math.round(val);
+    // -progress emits repeated blocks; take the last out_time_us (microseconds).
+    let us = NaN;
+    for (const m of text.matchAll(/out_time_(?:us|ms)=(\d+)/g)) us = parseInt(m[1], 10);
+    return isNaN(us) ? 0 : Math.round(us / 1_000_000);
   } catch {
     return 0;
   }

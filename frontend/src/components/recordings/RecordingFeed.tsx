@@ -69,7 +69,7 @@ function RecordingCard({
   const [thumbError, setThumbError] = useState(false);
 
   return (
-    <div className="group relative flex sm:block bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
+    <div className="group relative flex sm:block bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg dark:hover:shadow-black/40 hover:border-gray-300 dark:hover:border-gray-700 sm:hover:-translate-y-0.5 transition-all duration-200 ease-out">
       {/* Thumbnail */}
       <button
         onClick={onPlay}
@@ -80,7 +80,7 @@ function RecordingCard({
             src={`/api/recordings/${rec.id}/thumb`}
             alt=""
             onError={() => setThumbError(true)}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 ease-out sm:group-hover:scale-105"
             loading="lazy"
           />
         ) : (
@@ -90,31 +90,57 @@ function RecordingCard({
             </svg>
           </div>
         )}
+        {/* Gradient scrim — keeps badge legible over bright thumbnails */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
         {/* Play overlay — always visible on touch, hover-only on pointer devices */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
-          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-            <svg className="w-4 h-4 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors duration-200">
+          <div className="w-12 h-12 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-black/5 opacity-100 scale-100 sm:opacity-0 sm:scale-90 sm:group-hover:opacity-100 sm:group-hover:scale-100 transition-all duration-200 ease-out">
+            <svg className="w-5 h-5 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
         </div>
         {/* Duration badge */}
-        <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-black/70 text-white text-xs rounded font-mono">
+        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[11px] leading-none rounded-md font-mono tracking-tight tabular-nums shadow-sm">
           {formatDuration(rec.duration_sec)}
         </div>
       </button>
 
+      {/* Desktop action overlay — floats over thumbnail so it never squeezes the meta text */}
+      <div className="hidden sm:flex absolute top-2 right-2 items-center gap-1 opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 focus-within:opacity-100 focus-within:translate-y-0 transition-all duration-200">
+        <a
+          href={`/api/recordings/${rec.id}/download`}
+          download={`${rec.id}.mp4`}
+          title="Download"
+          className="p-1.5 text-white bg-black/50 backdrop-blur-sm rounded-lg ring-1 ring-white/10 hover:bg-black/70 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </a>
+        <button
+          onClick={onDelete}
+          title="Delete"
+          className="p-1.5 text-white bg-black/50 backdrop-blur-sm rounded-lg ring-1 ring-white/10 hover:bg-red-500/80 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+
       {/* Info row */}
-      <div className="flex-1 min-w-0 px-3 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+      <div className="flex-1 min-w-0 px-3 py-2.5 sm:px-3.5 sm:py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{camName}</div>
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-2">
+          <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{camName}</div>
+          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1.5">
             <span>{formatTime(rec.recorded_at)}</span>
-            <span>·</span>
+            <span className="text-gray-300 dark:text-gray-700">·</span>
             <span>{formatBytes(rec.size_bytes)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0 self-end sm:self-auto">
+        {/* Mobile inline actions — desktop uses the thumbnail overlay above */}
+        <div className="flex sm:hidden items-center gap-0.5 shrink-0 self-end">
           <a
             href={`/api/recordings/${rec.id}/download`}
             download={`${rec.id}.mp4`}
