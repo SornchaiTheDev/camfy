@@ -70,14 +70,15 @@ export class CameraProcess {
     this.watcher?.close();
     this.watcher = null;
 
-    if (!this.child) return;
-    this.child.kill(15); // SIGTERM
+    const child = this.child;
+    if (!child) return;
+    child.kill(15); // SIGTERM
     await Promise.race([
-      this.child.exited,
+      child.exited,
       new Promise<void>((r) => setTimeout(r, 3000)),
     ]);
-    if (!this.child.killed) {
-      this.child.kill(9); // SIGKILL
+    if (!child.killed) {
+      child.kill(9); // SIGKILL
     }
     this.child = null;
   }
