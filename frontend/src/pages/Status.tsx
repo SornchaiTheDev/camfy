@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCameras } from "../api/cameras";
-import { getSystemStatus, getCameraLogs } from "../api/system";
+import { getSystemStatus, getCameraLogs, getStreams } from "../api/system";
+import { useStreamStatusStore } from "../store/stream-status";
 
 function formatUptime(secs: number): string {
   const d = Math.floor(secs / 86400);
@@ -87,6 +88,17 @@ export function Status() {
 
   const { data: cameras } = useCameras();
 
+  // Seed disk usage on load via a one-shot fetch (the store is otherwise only
+  // populated by the WebSocket disk_usage push, so it's null on a fresh load).
+  // The WS update still takes over for live values once it arrives.
+  const { data: streams } = useQuery({
+    queryKey: ["streams"],
+    queryFn: getStreams,
+    refetchInterval: 10000,
+  });
+  const storeDisk = useStreamStatusStore((s) => s.diskUsage);
+  const diskUsage = storeDisk ?? streams?.disk ?? null;
+
   return (
     <div className="h-full overflow-y-auto p-6 max-w-4xl mx-auto">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">System Status</h1>
@@ -118,6 +130,24 @@ export function Status() {
                 percent={system.memory.percent}
                 color={system.memory.percent > 90 ? "bg-red-500" : system.memory.percent > 70 ? "bg-amber-500" : "bg-emerald-500"}
               />
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+              <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide mb-2">Storage</div>
+              {diskUsage ? (
+                <>
+                  <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">{diskUsage.percent}%</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+                    {diskUsage.used_gb.toFixed(1)} / {diskUsage.total_gb.toFixed(1)} GB
+                  </div>
+                  <ProgressBar
+                    percent={diskUsage.percent}
+                    color={diskUsage.percent > 90 ? "bg-red-500" : diskUsage.percent > 70 ? "bg-amber-500" : "bg-emerald-500"}
+                  />
+                </>
+              ) : (
+                <div className="text-sm text-gray-400 dark:text-gray-500">—</div>
+              )}
             </div>
 
             <StatCard

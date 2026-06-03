@@ -3,7 +3,7 @@ import { rmSync } from "fs";
 import db from "../db/client";
 import type { Recording } from "../types/db";
 import { broadcast } from "./ws-broadcaster";
-import { getDiskUsageBytes, getDiskTotalBytes } from "./disk";
+import { getDiskUsageBytes, getDiskStats } from "./disk";
 
 function getSetting<T>(key: string, fallback: T): T {
   const row = db.query<{ value: string }, [string]>("SELECT value FROM settings WHERE key = ?").get(key);
@@ -46,17 +46,14 @@ export function runDeletionPolicy() {
     }
   }
 
-  // broadcast updated disk usage
+  // broadcast updated disk usage (actual filesystem fill)
   const storagePath2 = getSetting<string>("storage_path", "./recordings");
-  const usedBytes = getDiskUsageBytes(storagePath2);
-  const { total } = getDiskTotalBytes(storagePath2);
-  const usedGb = usedBytes / 1024 ** 3;
-  const totalGb = total / 1024 ** 3;
+  const { used_bytes, total_bytes, percent } = getDiskStats(storagePath2);
   broadcast({
     type: "disk_usage",
-    used_gb: Math.round(usedGb * 100) / 100,
-    total_gb: Math.round(totalGb * 100) / 100,
-    percent: total > 0 ? Math.round((usedBytes / total) * 100) : 0,
+    used_gb: Math.round((used_bytes / 1024 ** 3) * 100) / 100,
+    total_gb: Math.round((total_bytes / 1024 ** 3) * 100) / 100,
+    percent,
   });
 }
 

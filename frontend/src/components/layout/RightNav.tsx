@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
 import { useTheme } from "../../context/theme";
-import { useStreamStatusStore } from "../../store/stream-status";
 
 const links = [
   {
@@ -57,7 +56,6 @@ function Tooltip({ label }: { label: string }) {
 
 export function RightNav() {
   const { theme, toggle } = useTheme();
-  const diskUsage = useStreamStatusStore((s) => s.diskUsage);
 
   return (
     <>
@@ -88,28 +86,6 @@ export function RightNav() {
         </nav>
 
         <div className="flex flex-col items-center gap-3 w-full px-2">
-          {diskUsage && (
-            <div className="relative group w-full flex justify-center">
-              <button className="flex flex-col items-center gap-1 w-10 h-10 justify-center">
-                <div className="w-5 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      diskUsage.percent > 90 ? "bg-red-500" : diskUsage.percent > 70 ? "bg-amber-500" : "bg-emerald-500"
-                    }`}
-                    style={{ width: `${diskUsage.percent}%` }}
-                  />
-                </div>
-                <span className="text-gray-400 dark:text-gray-500" style={{ fontSize: "9px" }}>
-                  {diskUsage.percent}%
-                </span>
-              </button>
-              <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 shadow-lg">
-                {diskUsage.used_gb.toFixed(1)} / {diskUsage.total_gb.toFixed(1)} GB
-                <span className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900 dark:border-l-gray-700" />
-              </div>
-            </div>
-          )}
-
           <div className="relative group w-full flex justify-center">
             <button
               onClick={toggle}

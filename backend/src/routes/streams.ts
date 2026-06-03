@@ -7,7 +7,7 @@ import { join } from "path";
 import db from "../db/client";
 import { ffmpegManager } from "../services/ffmpeg/manager";
 import type { Camera } from "../types/db";
-import { getDiskUsageBytes, getDiskTotalBytes } from "../services/disk";
+import { getDiskStats } from "../services/disk";
 
 function getStoragePath(): string {
   const row = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key = 'storage_path'").get();
@@ -18,8 +18,7 @@ export const streamsRoute = new Elysia()
   .get("/api/streams", () => {
     const cameras = db.query<Camera, []>("SELECT * FROM cameras").all();
     const storagePath = getStoragePath();
-    const usedBytes = getDiskUsageBytes(storagePath);
-    const { total } = getDiskTotalBytes(storagePath);
+    const { used_bytes, total_bytes, percent } = getDiskStats(storagePath);
 
     return {
       cameras: cameras.map((cam) => ({
@@ -28,9 +27,9 @@ export const streamsRoute = new Elysia()
         status: ffmpegManager.getStatus(cam.id),
       })),
       disk: {
-        used_gb: Math.round((usedBytes / 1024 ** 3) * 100) / 100,
-        total_gb: Math.round((total / 1024 ** 3) * 100) / 100,
-        percent: total > 0 ? Math.round((usedBytes / total) * 100) : 0,
+        used_gb: Math.round((used_bytes / 1024 ** 3) * 100) / 100,
+        total_gb: Math.round((total_bytes / 1024 ** 3) * 100) / 100,
+        percent,
       },
     };
   })
