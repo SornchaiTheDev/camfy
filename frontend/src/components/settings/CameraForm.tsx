@@ -15,21 +15,21 @@ type Props = {
 
 const GRID_SIZES: CameraGridSize[] = ["small", "medium", "large"];
 
+const inputCls = "w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500";
+const labelCls = "block text-sm text-gray-600 dark:text-gray-400 mb-1";
+
 export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
   const isEdit = !!camera;
   const defaultMode: Mode = camera?.onvif_host ? "onvif" : "rtsp";
   const [mode, setMode] = useState<Mode>(defaultMode);
 
-  // shared
   const [name, setName] = useState(camera?.name ?? "");
   const [enabled, setEnabled] = useState(camera?.enabled ?? true);
   const [chunkSecs, setChunkSecs] = useState(camera?.chunk_secs ? String(camera.chunk_secs) : "");
   const [gridSize, setGridSize] = useState<CameraGridSize>(camera?.grid_size ?? "medium");
 
-  // manual RTSP
   const [rtspUrl, setRtspUrl] = useState(camera?.rtsp_url ?? "");
 
-  // ONVIF
   const [onvifHost, setOnvifHost] = useState(camera?.onvif_host ?? "");
   const [onvifPort, setOnvifPort] = useState(String(camera?.onvif_port ?? 80));
   const [onvifUser, setOnvifUser] = useState(camera?.onvif_username ?? "");
@@ -105,19 +105,19 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/30 dark:bg-black/60" onClick={onCancel} />
       <form
         onSubmit={handleSubmit}
-        className="relative flex flex-col w-full max-w-lg h-full bg-gray-800 shadow-xl"
+        className="relative flex flex-col w-full max-w-lg h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-xl"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 shrink-0">
-          <h3 className="text-white font-semibold">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+          <h3 className="text-gray-900 dark:text-white font-semibold">
             {isEdit ? "Edit Camera" : "Add Camera"}
           </h3>
           <button
             type="button"
             onClick={onCancel}
-            className="text-gray-400 hover:text-white transition-colors text-xl leading-none"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors text-xl leading-none"
           >
             ×
           </button>
@@ -125,77 +125,75 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
-        {/* Mode tabs */}
-        {!isEdit && (
-          <div className="flex gap-1 mb-5 p-1 bg-gray-700 rounded-md">
-            {(["onvif", "rtsp"] as Mode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className={clsx(
-                  "flex-1 py-1.5 text-sm rounded transition-colors",
-                  mode === m
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white"
-                )}
-              >
-                {m === "onvif" ? "ONVIF (Auto)" : "Manual RTSP"}
-              </button>
-            ))}
-          </div>
-        )}
+          {!isEdit && (
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-5">
+              {(["onvif", "rtsp"] as Mode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={clsx(
+                    "flex-1 py-1.5 text-sm rounded-md transition-colors",
+                    mode === m
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                  )}
+                >
+                  {m === "onvif" ? "ONVIF (Auto)" : "Manual RTSP"}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* ONVIF tab */}
           {mode === "onvif" && (
             <>
               <div>
-                <label className="block text-xs text-gray-400 mb-2">Discover on LAN</label>
+                <label className={labelCls}>Discover on LAN</label>
                 <DiscoverPanel onSelect={handleDiscoveredDevice} />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-sm text-gray-300 mb-1">Host / IP</label>
+                  <label className={labelCls}>Host / IP</label>
                   <input
                     type="text"
                     value={onvifHost}
                     onChange={(e) => setOnvifHost(e.target.value)}
                     placeholder="192.168.1.100"
-                    className="w-full px-3 py-2 bg-gray-700 text-white font-mono rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={clsx(inputCls, "font-mono")}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Port</label>
+                  <label className={labelCls}>Port</label>
                   <input
                     type="number"
                     value={onvifPort}
                     onChange={(e) => setOnvifPort(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputCls}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Username</label>
+                  <label className={labelCls}>Username</label>
                   <input
                     type="text"
                     value={onvifUser}
                     onChange={(e) => setOnvifUser(e.target.value)}
                     placeholder="admin"
                     autoComplete="username"
-                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Password</label>
+                  <label className={labelCls}>Password</label>
                   <input
                     type="password"
                     value={onvifPass}
                     onChange={(e) => setOnvifPass(e.target.value)}
                     autoComplete="current-password"
-                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputCls}
                   />
                 </div>
               </div>
@@ -205,15 +203,15 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
                   type="button"
                   onClick={handleFetchProfiles}
                   disabled={!onvifHost || probe.isPending}
-                  className="px-3 py-1.5 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-500 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors flex items-center gap-2"
                 >
                   {probe.isPending && (
-                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   )}
                   {probe.isPending ? "Fetching..." : "Fetch Profiles"}
                 </button>
                 {probe.isError && (
-                  <p className="text-xs text-red-400 mt-1">
+                  <p className="text-xs text-red-500 mt-1">
                     Could not connect — check host, port, and credentials
                   </p>
                 )}
@@ -221,11 +219,11 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
 
               {profiles.length > 0 && (
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Stream Profile</label>
+                  <label className={labelCls}>Stream Profile</label>
                   <select
                     value={selectedProfile}
                     onChange={(e) => setSelectedProfile(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputCls}
                   >
                     {profiles.map((p) => (
                       <option key={p.token} value={p.token}>
@@ -239,39 +237,35 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
             </>
           )}
 
-          {/* Manual RTSP tab */}
           {mode === "rtsp" && (
             <div>
-              <label className="block text-sm text-gray-300 mb-1">RTSP URL</label>
+              <label className={labelCls}>RTSP URL</label>
               <input
                 type="text"
                 value={rtspUrl}
                 onChange={(e) => setRtspUrl(e.target.value)}
                 required
                 placeholder="rtsp://user:pass@192.168.1.100:554/stream"
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={clsx(inputCls, "font-mono")}
               />
             </div>
           )}
 
-          {/* Shared fields */}
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Camera Name</label>
+            <label className={labelCls}>Camera Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Front Door"
-              className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputCls}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-300 mb-1">
-                Chunk Duration (s, blank = global)
-              </label>
+              <label className={labelCls}>Chunk Duration (s, blank = global)</label>
               <input
                 type="number"
                 value={chunkSecs}
@@ -279,15 +273,15 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
                 placeholder="300"
                 min="30"
                 max="3600"
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Default Grid Size</label>
+              <label className={labelCls}>Default Grid Size</label>
               <select
                 value={gridSize}
                 onChange={(e) => setGridSize(e.target.value as CameraGridSize)}
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputCls}
               >
                 {GRID_SIZES.map((s) => (
                   <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -304,25 +298,25 @@ export function CameraForm({ camera, onSubmit, onCancel, isLoading }: Props) {
               onChange={(e) => setEnabled(e.target.checked)}
               className="rounded"
             />
-            <label htmlFor="cam-enabled" className="text-sm text-gray-300">
+            <label htmlFor="cam-enabled" className="text-sm text-gray-600 dark:text-gray-400">
               Enable recording
             </label>
           </div>
 
-        </div>{/* end scrollable body */}
+        </div>
 
-        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-700 shrink-0">
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading || !canSubmit}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-md hover:bg-gray-700 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors"
           >
             {isLoading ? "Saving..." : isEdit ? "Save Changes" : "Add Camera"}
           </button>

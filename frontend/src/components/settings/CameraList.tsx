@@ -44,37 +44,37 @@ export function CameraList({ cameras }: Props) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-gray-400 border-b border-gray-700">
-              <th className="text-left py-2 pr-4">Name</th>
-              <th className="text-left py-2 pr-4">RTSP URL</th>
-              <th className="text-left py-2 pr-4">Status</th>
-              <th className="text-left py-2 pr-4">Chunk</th>
-              <th className="text-right py-2">Actions</th>
+            <tr className="text-gray-400 dark:text-gray-500 border-b border-gray-200 dark:border-gray-800">
+              <th className="text-left py-2 pr-4 font-medium">Name</th>
+              <th className="text-left py-2 pr-4 font-medium">RTSP URL</th>
+              <th className="text-left py-2 pr-4 font-medium">Status</th>
+              <th className="text-left py-2 pr-4 font-medium">Chunk</th>
+              <th className="text-right py-2 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {cameras.map((cam) => (
-              <tr key={cam.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 pr-4 text-white font-medium">{cam.name}</td>
-                <td className="py-3 pr-4 text-gray-400 font-mono text-xs max-w-xs truncate">
+              <tr key={cam.id} className="border-b border-gray-100 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                <td className="py-3 pr-4 text-gray-900 dark:text-white font-medium">{cam.name}</td>
+                <td className="py-3 pr-4 text-gray-400 dark:text-gray-500 font-mono text-xs max-w-xs truncate">
                   {cam.rtsp_url}
                 </td>
                 <td className="py-3 pr-4">
                   <Badge status={cam.status} />
                 </td>
-                <td className="py-3 pr-4 text-gray-400">
+                <td className="py-3 pr-4 text-gray-400 dark:text-gray-500">
                   {cam.chunk_secs ? `${cam.chunk_secs}s` : "global"}
                 </td>
                 <td className="py-3 text-right">
                   <button
                     onClick={() => setEditing(cam)}
-                    className="text-blue-400 hover:text-blue-300 mr-3 transition-colors"
+                    className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mr-4 transition-colors text-xs"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => setDeleting(cam)}
-                    className="text-red-400 hover:text-red-300 transition-colors"
+                    className="text-red-400 hover:text-red-500 transition-colors text-xs"
                   >
                     Delete
                   </button>

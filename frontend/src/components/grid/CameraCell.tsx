@@ -1,66 +1,35 @@
-import { useState } from "react";
 import { HLSPlayer } from "../player/HLSPlayer";
 import { Badge } from "../ui/Badge";
-import { CellSizeControl } from "./CellSizeControl";
-import { useGridStore } from "../../store/grid";
 import { useStreamStatusStore } from "../../store/stream-status";
-import type { CameraWithStatus, CameraGridSize } from "../../types";
+import type { CameraWithStatus } from "../../types";
 
 type Props = {
   camera: CameraWithStatus;
-  onSizeChange?: (size: CameraGridSize) => void;
 };
 
-export function CameraCell({ camera, onSizeChange }: Props) {
-  const [showControls, setShowControls] = useState(false);
-  const cellSizes = useGridStore((s) => s.cellSizes);
-  const setCellSize = useGridStore((s) => s.setCellSize);
+export function CameraCell({ camera }: Props) {
   const wsStatus = useStreamStatusStore((s) => s.statuses.get(camera.id));
   const status = wsStatus ?? camera.status;
 
-  const streamSrc = status === "recording"
-    ? `/live/${camera.id}/live.m3u8`
-    : null;
-
-  const size: CameraGridSize = cellSizes[camera.id] ?? camera.grid_size;
-
-  function handleSizeChange(newSize: CameraGridSize) {
-    setCellSize(camera.id, newSize);
-    onSizeChange?.(newSize);
-  }
+  const streamSrc = status === "recording" ? `/live/${camera.id}/live.m3u8` : null;
 
   return (
-    <div
-      className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden group"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
+    <div className="relative w-full h-full bg-gray-900 overflow-hidden group">
       <HLSPlayer src={streamSrc} className="w-full h-full" />
 
-      {/* Top overlay: name + status */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-2 py-1 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
-        <span className="text-white text-xs font-medium truncate">{camera.name}</span>
+      {/* Name + status overlay */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <span className="text-white text-xs font-medium truncate drop-shadow">{camera.name}</span>
         <Badge status={status} />
       </div>
 
-      {/* Bottom overlay: size controls (visible on hover) */}
-      {showControls && (
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 py-1 bg-gradient-to-t from-black/70 to-transparent">
-          <CellSizeControl value={size} onChange={handleSizeChange} />
-          {status === "idle" && (
-            <span className="text-gray-400 text-xs">Offline</span>
-          )}
-        </div>
-      )}
-
       {/* Offline overlay */}
       {status !== "recording" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
-          <div className="text-center">
-            <div className="text-gray-400 text-xs mt-1">
-              {status === "error" ? "Stream error" : "Waiting for stream..."}
-            </div>
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 pointer-events-none gap-1">
+          <span className="text-gray-400 text-xs font-medium">{camera.name}</span>
+          <span className="text-gray-500 text-xs">
+            {status === "error" ? "Stream error" : "Offline"}
+          </span>
         </div>
       )}
     </div>

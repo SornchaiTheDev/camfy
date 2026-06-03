@@ -85,3 +85,22 @@ export function useProbeOnvif() {
       ),
   });
 }
+
+export type AutoRegisterResult = {
+  registered: { id: string; name: string }[];
+  updated: { id: string; name: string }[];
+  skipped: string[];
+  failed: { host: string; error: string }[];
+};
+
+export function useAutoRegisterCameras() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (creds: { username: string; password: string }) =>
+      apiFetch<AutoRegisterResult>("/api/onvif/auto-register", {
+        method: "POST",
+        body: JSON.stringify(creds),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cameras"] }),
+  });
+}

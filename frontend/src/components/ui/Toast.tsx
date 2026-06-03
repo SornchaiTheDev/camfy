@@ -28,10 +28,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={clsx(
-              "px-4 py-2 rounded-md text-white text-sm shadow-lg",
-              t.type === "success" && "bg-green-600",
-              t.type === "error" && "bg-red-600",
-              t.type === "info" && "bg-gray-700"
+              "px-4 py-2.5 rounded-lg text-white text-sm shadow-lg",
+              t.type === "success" && "bg-emerald-600",
+              t.type === "error" && "bg-red-500",
+              t.type === "info" && "bg-gray-800 dark:bg-gray-700"
             )}
           >
             {t.message}

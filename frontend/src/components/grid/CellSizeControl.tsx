@@ -18,8 +18,8 @@ export function CellSizeControl({ value, onChange }: Props) {
           className={clsx(
             "px-2 py-0.5 text-xs rounded transition-colors",
             value === s
-              ? "bg-blue-600 text-white"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              ? "bg-white text-gray-900"
+              : "bg-black/40 text-gray-300 hover:bg-black/60"
           )}
         >
           {s[0].toUpperCase()}

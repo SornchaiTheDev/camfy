@@ -8,8 +8,6 @@ type Props = {
 };
 
 function getVodSrc(rec: Recording): string {
-  // segment_path: {cam_id}/{date}/seg_xxxxx.ts
-  // VOD playlist at: /vod/{cam_id}/{date}/archive.m3u8
   const parts = rec.segment_path.split("/");
   if (parts.length < 2) return "";
   const camId = parts[0];
@@ -27,27 +25,27 @@ export function RecordingPlayer({ recording, camera, onClose }: Props) {
   const src = getVodSrc(recording);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="bg-gray-800 rounded-lg w-full max-w-3xl shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
           <div>
-            <span className="text-white font-medium">{camera.name}</span>
-            <span className="text-gray-400 text-sm ml-2">
+            <span className="text-gray-900 dark:text-white font-medium">{camera.name}</span>
+            <span className="text-gray-400 dark:text-gray-500 text-sm ml-2">
               {new Date(recording.recorded_at).toLocaleString()}
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-400">{formatBytes(recording.size_bytes)}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{formatBytes(recording.size_bytes)}</span>
             <a
               href={`/api/recordings/${recording.id}/download`}
               download={`${recording.id}.mp4`}
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
             >
               Download MP4
             </a>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors text-lg leading-none"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors text-lg leading-none"
             >
               ×
             </button>
@@ -55,7 +53,7 @@ export function RecordingPlayer({ recording, camera, onClose }: Props) {
         </div>
         <HLSPlayer
           src={src}
-          className="w-full aspect-video"
+          className="w-full aspect-video bg-black"
           muted={false}
           controls
           autoPlay
