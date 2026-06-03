@@ -6,6 +6,48 @@ import { getDeviceInfo, getProfiles } from "./client";
 import { ffmpegManager } from "../ffmpeg/manager";
 import { broadcast } from "../ws-broadcaster";
 
+export type DeduplicateResult = {
+  merged: { kept: Camera; removed: Camera[] }[];
+};
+
+export async function deduplicateCameras(): Promise<DeduplicateResult> {
+  const result: DeduplicateResult = { merged: [] };
+
+  // Find duplicate groups by serial, then by EPR UUID
+  const dedupByColumn = async (col: "onvif_serial" | "onvif_epr_uuid") => {
+    const dupes = db
+      .query<{ val: string }, []>(
+        `SELECT ${col} as val FROM cameras WHERE ${col} IS NOT NULL AND ${col} != ''
+         GROUP BY ${col} HAVING COUNT(*) > 1`
+      )
+      .all();
+
+    for (const { val } of dupes) {
+      const group = db
+        .query<Camera, [string]>(
+          `SELECT * FROM cameras WHERE ${col} = ? ORDER BY updated_at DESC`
+        )
+        .all(val);
+
+      if (group.length < 2) continue;
+
+      const [keep, ...remove] = group;
+      for (const cam of remove) {
+        await ffmpegManager.stopCamera(cam.id);
+        db.run("DELETE FROM cameras WHERE id = ?", [cam.id]);
+      }
+      result.merged.push({ kept: keep, removed: remove });
+    }
+  };
+
+  await dedupByColumn("onvif_serial");
+  await dedupByColumn("onvif_epr_uuid");
+
+  if (result.merged.length > 0) broadcast({ type: "cameras_updated" });
+
+  return result;
+}
+
 export type AutoRegisterResult = {
   registered: Camera[];
   updated: Camera[];   // IP changed, existing camera updated
@@ -49,14 +91,26 @@ export async function autoRegisterCameras(
     }
 
     const serial = deviceInfo?.serial || null;
+    const eprUuid = device.eprUuid || null;
 
-    // 1. Try match by serial (stable across IP changes)
-    const bySerial = serial
+    // 1. Try match by EPR UUID (most stable — survives IP changes)
+    const byEpr = eprUuid
+      ? db.query<Camera, [string]>("SELECT * FROM cameras WHERE onvif_epr_uuid = ?").get(eprUuid)
+      : null;
+
+    // 2. Try match by serial (fallback for cameras without EPR, e.g. VStarCam)
+    const bySerial = !byEpr && serial
       ? db.query<Camera, [string]>("SELECT * FROM cameras WHERE onvif_serial = ?").get(serial)
       : null;
 
-    if (bySerial) {
-      if (bySerial.onvif_host === device.host && bySerial.onvif_port === device.port) {
+    const existing = byEpr ?? bySerial ?? null;
+
+    if (existing) {
+      // Backfill EPR UUID if we now have it and it wasn't stored
+      if (eprUuid && !existing.onvif_epr_uuid) {
+        db.run("UPDATE cameras SET onvif_epr_uuid = ? WHERE id = ?", [eprUuid, existing.id]);
+      }
+      if (existing.onvif_host === device.host && existing.onvif_port === device.port) {
         result.skipped.push(device.host);
         continue;
       }
@@ -64,25 +118,34 @@ export async function autoRegisterCameras(
       const now = new Date().toISOString();
       db.run(
         "UPDATE cameras SET onvif_host = ?, onvif_port = ?, updated_at = ? WHERE id = ?",
-        [device.host, device.port, now, bySerial.id]
+        [device.host, device.port, now, existing.id]
       );
-      const updated = db.query<Camera, [string]>("SELECT * FROM cameras WHERE id = ?").get(bySerial.id)!;
+      const updated = db.query<Camera, [string]>("SELECT * FROM cameras WHERE id = ?").get(existing.id)!;
       await ffmpegManager.restartCamera(updated);
       result.updated.push(updated);
       continue;
     }
 
-    // 2. Fall back to IP match (serial unavailable)
+    // 3. Fall back to IP match (no EPR, no serial)
     const byIp = db
       .query<Camera, [string]>("SELECT * FROM cameras WHERE onvif_host = ?")
       .get(device.host);
 
     if (byIp) {
+      // Backfill identifiers if now available
+      const updates: string[] = [];
+      const params: (string | null)[] = [];
+      if (eprUuid && !byIp.onvif_epr_uuid) { updates.push("onvif_epr_uuid = ?"); params.push(eprUuid); }
+      if (serial && !byIp.onvif_serial) { updates.push("onvif_serial = ?"); params.push(serial); }
+      if (updates.length) {
+        params.push(byIp.id);
+        db.run(`UPDATE cameras SET ${updates.join(", ")} WHERE id = ?`, params);
+      }
       result.skipped.push(device.host);
       continue;
     }
 
-    // 3. New device — register
+    // 4. New device — register
     const profile = profiles[0];
     const name =
       deviceInfo?.manufacturer && deviceInfo?.model
@@ -96,9 +159,9 @@ export async function autoRegisterCameras(
       `INSERT INTO cameras
          (id, name, rtsp_url, enabled, grid_order, grid_size, chunk_secs,
           onvif_host, onvif_port, onvif_username, onvif_password, onvif_profile_token,
-          onvif_serial, created_at, updated_at)
-       VALUES (?, ?, NULL, 1, ?, 'medium', NULL, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, gridOrder, device.host, device.port, username, password, profile.token, serial, now, now]
+          onvif_serial, onvif_epr_uuid, created_at, updated_at)
+       VALUES (?, ?, NULL, 1, ?, 'medium', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, gridOrder, device.host, device.port, username, password, profile.token, serial, eprUuid, now, now]
     );
 
     const camera = db.query<Camera, [string]>("SELECT * FROM cameras WHERE id = ?").get(id)!;

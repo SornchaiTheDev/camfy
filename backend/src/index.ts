@@ -13,7 +13,7 @@ import { systemRoute } from "./routes/system";
 import { wsHandler } from "./routes/ws";
 import { ffmpegManager } from "./services/ffmpeg/manager";
 import { startCron } from "./services/cron";
-import { autoRegisterCameras } from "./services/onvif/autoRegister";
+import { autoRegisterCameras, deduplicateCameras } from "./services/onvif/autoRegister";
 import { startOnvifScanner } from "./services/onvif/scanner";
 import db from "./db/client";
 
@@ -63,6 +63,11 @@ startOnvifScanner();
 // 3c. One-shot scan on boot
 (async () => {
   try {
+    // Merge existing duplicate cameras before scanning
+    const dedupResult = await deduplicateCameras();
+    if (dedupResult.merged.length > 0)
+      console.log(`Deduped ${dedupResult.merged.length} camera group(s):`, dedupResult.merged.map(({ kept, removed }) => `kept ${kept.name} (${kept.onvif_host}), removed ${removed.map((c) => c.onvif_host).join(", ")}`).join(" | "));
+
     const uRow = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key='onvif_default_username'").get();
     const pRow = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key='onvif_default_password'").get();
     const username = uRow ? JSON.parse(uRow.value) : "admin";

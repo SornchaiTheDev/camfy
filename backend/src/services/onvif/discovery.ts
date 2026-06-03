@@ -28,6 +28,7 @@ export type DiscoveredDevice = {
   xaddrs: string[];
   host: string;
   port: number;
+  eprUuid?: string;
 };
 
 function parseXAddrs(xmlText: string): string[] {
@@ -39,13 +40,20 @@ function parseXAddrs(xmlText: string): string[] {
     .filter((u) => u.startsWith("http://"));
 }
 
-function xaddrToDevice(xaddr: string): DiscoveredDevice | null {
+function parseEprUuid(xmlText: string): string | undefined {
+  // WS-Discovery ProbeMatch: <wsa:Address>urn:uuid:XXXX</wsa:Address>
+  const match = xmlText.match(/<[^>]*Address[^>]*>\s*(urn:uuid:[a-f0-9-]+)\s*<\/[^>]*Address>/i);
+  return match ? match[1] : undefined;
+}
+
+function xaddrToDevice(xaddr: string, eprUuid?: string): DiscoveredDevice | null {
   try {
     const url = new URL(xaddr);
     return {
       xaddrs: [xaddr],
       host: url.hostname,
       port: parseInt(url.port || "80", 10),
+      eprUuid,
     };
   } catch {
     return null;
@@ -69,8 +77,9 @@ export async function discoverOnvif(timeoutMs = 3000): Promise<DiscoveredDevice[
     socket.on("message", (msg) => {
       const text = msg.toString("utf8");
       const xaddrs = parseXAddrs(text);
+      const eprUuid = parseEprUuid(text);
       for (const xaddr of xaddrs) {
-        const dev = xaddrToDevice(xaddr);
+        const dev = xaddrToDevice(xaddr, eprUuid);
         if (dev && !devices.has(dev.host)) {
           devices.set(dev.host, dev);
         }
