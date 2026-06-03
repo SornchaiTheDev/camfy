@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/client";
 import type { Setting } from "../types/db";
+import { restartOnvifScanner } from "../services/onvif/scanner";
 
 function getAllSettings(): Record<string, unknown> {
   const rows = db.query<Setting, []>("SELECT * FROM settings").all();
@@ -17,6 +18,7 @@ export const settingsRoute = new Elysia({ prefix: "/api/settings" })
       for (const [key, val] of Object.entries(body)) {
         if (val !== undefined) stmt.run(key, JSON.stringify(val));
       }
+      restartOnvifScanner();
       return getAllSettings();
     },
     {
@@ -26,6 +28,9 @@ export const settingsRoute = new Elysia({ prefix: "/api/settings" })
         max_disk_gb: t.Optional(t.Number()),
         storage_path: t.Optional(t.String()),
         deletion_mode: t.Optional(t.Union([t.Literal("days"), t.Literal("disk")])),
+        onvif_scan_interval_mins: t.Optional(t.Number()),
+        onvif_default_username: t.Optional(t.String()),
+        onvif_default_password: t.Optional(t.String()),
       }),
     }
   );

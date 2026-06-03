@@ -16,6 +16,8 @@ const MAX_RESPAWNS = 10;
 const RESPAWN_BASE_MS = 5_000;
 const STABLE_THRESHOLD_MS = 60_000;
 
+const LOG_BUFFER_SIZE = 200;
+
 export class CameraProcess {
   private child: ReturnType<typeof Bun.spawn> | null = null;
   private respawnTimer: ReturnType<typeof setTimeout> | null = null;
@@ -23,6 +25,11 @@ export class CameraProcess {
   private startedAt = 0;
   private stopped = false;
   private watcher: ReturnType<typeof watch> | null = null;
+  private logLines: string[] = [];
+
+  getLogs(): string[] {
+    return [...this.logLines];
+  }
 
   constructor(
     readonly camera: Camera,
@@ -77,11 +84,36 @@ export class CameraProcess {
     this.onEvent({ camera_id: this.camera.id, event: "started" });
     broadcast({ type: "camera_status", camera_id: this.camera.id, status: "recording" });
 
+    this._pipeStderr(this.child.stderr!);
+
     this._watchSegments(archiveDir);
 
     this.child.exited.then((code) => {
       this._onExit(code);
     });
+  }
+
+  private async _pipeStderr(stderr: ReadableStream<Uint8Array>) {
+    const decoder = new TextDecoder();
+    let partial = "";
+    const reader = stderr.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = partial + decoder.decode(value, { stream: true });
+        const lines = text.split("\n");
+        partial = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const ts = new Date().toISOString();
+          this.logLines.push(`[${ts}] ${line}`);
+          if (this.logLines.length > LOG_BUFFER_SIZE) this.logLines.shift();
+        }
+      }
+    } catch {
+      // stream closed — normal on stop
+    }
   }
 
   private _onExit(code: number | null) {

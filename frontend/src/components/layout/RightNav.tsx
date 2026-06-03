@@ -35,6 +35,15 @@ const links = [
       </svg>
     ),
   },
+  {
+    to: "/status",
+    label: "Status",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+        <path fillRule="evenodd" d="M3 4a1 1 0 000 2h.01a1 1 0 000-2H3zm3.5 0a1 1 0 000 2H17a1 1 0 000-2H6.5zM3 9a1 1 0 000 2h.01a1 1 0 000-2H3zm3.5 0a1 1 0 000 2H17a1 1 0 000-2H6.5zM3 14a1 1 0 000 2h.01a1 1 0 000-2H3zm3.5 0a1 1 0 000 2H17a1 1 0 000-2H6.5z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
 ];
 
 function Tooltip({ label }: { label: string }) {

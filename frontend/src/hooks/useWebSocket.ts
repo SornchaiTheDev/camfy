@@ -8,7 +8,7 @@ const WS_URL = `${location.protocol === "https:" ? "wss" : "ws"}://${location.ho
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const qc = useQueryClient();
-  const { setStatus, setDiskUsage } = useStreamStatusStore();
+  const { setStatus, setDiskUsage, setLastScan } = useStreamStatusStore();
 
   useEffect(() => {
     let retryTimer: ReturnType<typeof setTimeout>;
@@ -34,6 +34,16 @@ export function useWebSocket() {
             case "new_segment":
               qc.invalidateQueries({ queryKey: ["recordings"] });
               break;
+            case "scan_result":
+              setLastScan({
+                registered: msg.registered,
+                updated: msg.updated,
+                failed: msg.failed,
+                scanned_at: msg.scanned_at,
+              });
+              if (msg.registered > 0 || msg.updated > 0)
+                qc.invalidateQueries({ queryKey: ["cameras"] });
+              break;
           }
         } catch {
           // ignore malformed messages
@@ -51,5 +61,5 @@ export function useWebSocket() {
       clearTimeout(retryTimer);
       wsRef.current?.close();
     };
-  }, [qc, setStatus, setDiskUsage]);
+  }, [qc, setStatus, setDiskUsage, setLastScan]);
 }

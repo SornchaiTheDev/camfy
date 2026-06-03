@@ -44,6 +44,9 @@ export type Settings = {
   max_disk_gb: number;
   storage_path: string;
   deletion_mode: DeletionMode;
+  onvif_scan_interval_mins: number;
+  onvif_default_username: string;
+  onvif_default_password: string;
 };
 
 export type UpdateSettingsBody = Partial<Settings>;
@@ -84,4 +87,5 @@ export type WSMessage =
   | { type: "camera_status"; camera_id: string; status: StreamStatus; detail?: string }
   | { type: "disk_usage"; used_gb: number; total_gb: number; percent: number }
   | { type: "new_segment"; camera_id: string; segment_path: string; recorded_at: string }
-  | { type: "cameras_updated" };
+  | { type: "cameras_updated" }
+  | { type: "scan_result"; registered: number; updated: number; failed: number; scanned_at: string };

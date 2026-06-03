@@ -95,6 +95,10 @@ class FFmpegManager {
   isRunning(cameraId: string) {
     return this.processes.get(cameraId)?.isRunning ?? false;
   }
+
+  getLogs(cameraId: string): string[] {
+    return this.processes.get(cameraId)?.getLogs() ?? [];
+  }
 }
 
 export const ffmpegManager = new FFmpegManager();

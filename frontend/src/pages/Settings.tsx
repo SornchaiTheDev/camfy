@@ -3,10 +3,11 @@ import { useCameras, useCreateCamera, useAutoRegisterCameras } from "../api/came
 import { CameraList } from "../components/settings/CameraList";
 import { CameraForm } from "../components/settings/CameraForm";
 import { PolicyForm } from "../components/settings/PolicyForm";
+import { AutoDiscoveryForm } from "../components/settings/AutoDiscoveryForm";
 import { useToast } from "../components/ui/Toast";
 import type { CreateCameraBody } from "../types";
 
-type Tab = "cameras" | "policy";
+type Tab = "cameras" | "policy" | "discovery";
 
 export function Settings() {
   const [tab, setTab] = useState<Tab>("cameras");
@@ -49,7 +50,7 @@ export function Settings() {
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Settings</h1>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-6">
-        {(["cameras", "policy"] as Tab[]).map((t) => (
+        {(["cameras", "policy", "discovery"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -59,7 +60,7 @@ export function Settings() {
                 : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             }`}
           >
-            {t === "cameras" ? "Cameras" : "Recording Policy"}
+            {t === "cameras" ? "Cameras" : t === "policy" ? "Recording Policy" : "Auto-Discovery"}
           </button>
         ))}
       </div>
@@ -88,6 +89,7 @@ export function Settings() {
       )}
 
       {tab === "policy" && <PolicyForm />}
+      {tab === "discovery" && <AutoDiscoveryForm />}
 
       {showAdd && (
         <CameraForm

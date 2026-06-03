@@ -3,6 +3,7 @@ import { RightNav } from "./components/layout/RightNav";
 import { Dashboard } from "./pages/Dashboard";
 import { Recordings } from "./pages/Recordings";
 import { Settings } from "./pages/Settings";
+import { Status } from "./pages/Status";
 import { useWebSocket } from "./hooks/useWebSocket";
 
 function AppShell() {
@@ -15,6 +16,7 @@ function AppShell() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/recordings" element={<Recordings />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/status" element={<Status />} />
         </Routes>
       </main>
       <RightNav />

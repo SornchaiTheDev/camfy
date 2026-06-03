@@ -9,10 +9,12 @@ import { recordingsRoute } from "./routes/recordings";
 import { settingsRoute } from "./routes/settings";
 import { streamsRoute } from "./routes/streams";
 import { onvifRoute } from "./routes/onvif";
+import { systemRoute } from "./routes/system";
 import { wsHandler } from "./routes/ws";
 import { ffmpegManager } from "./services/ffmpeg/manager";
 import { startCron } from "./services/cron";
 import { autoRegisterCameras } from "./services/onvif/autoRegister";
+import { startOnvifScanner } from "./services/onvif/scanner";
 import db from "./db/client";
 
 // 1. Run DB migrations
@@ -24,7 +26,10 @@ startCron();
 // 3. Start all enabled cameras (async — resolves ONVIF URIs)
 ffmpegManager.startAll();
 
-// 3b. Auto-register new ONVIF cameras found on LAN
+// 3b. Start recurring ONVIF scanner (interval from settings)
+startOnvifScanner();
+
+// 3c. One-shot scan on boot
 (async () => {
   try {
     const uRow = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key='onvif_default_username'").get();
@@ -61,7 +66,8 @@ const app = new Elysia()
   .use(recordingsRoute)
   .use(settingsRoute)
   .use(streamsRoute)
-  .use(onvifRoute);
+  .use(onvifRoute)
+  .use(systemRoute);
 
 const frontendDist = join(import.meta.dir, "../../frontend/dist");
 const hasFrontend = existsSync(frontendDist);
