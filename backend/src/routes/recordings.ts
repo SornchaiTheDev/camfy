@@ -183,23 +183,32 @@ export const recordingsRoute = new Elysia({ prefix: "/api/recordings" })
       return Bun.file(absPath);
     }
 
-    // Remux .ts → .mp4 on-the-fly via FFmpeg (no re-encode, just container change)
+    // Remux .ts → .mp4 to a temp file (no re-encode, just container change). Writing to a
+    // real file lets FFmpeg lay down a proper moov atom with faststart, so the download has
+    // a correct duration and a Content-Length — streaming a fragmented mp4 over a pipe gives
+    // neither and can be saved truncated.
+    const tmpPath = join("/tmp", `camfy-download-${rec.id}.mp4`);
     const ffmpeg = Bun.spawn([
-      "ffmpeg",
+      "ffmpeg", "-y",
       "-loglevel", "error",
       "-i", absPath,
       "-c", "copy",
-      "-movflags", "frag_keyframe+empty_moov+faststart",
-      "-f", "mp4",
-      "pipe:1",
-    ], {
-      stdout: "pipe",
-      stderr: "ignore",
-    });
+      "-movflags", "+faststart",
+      tmpPath,
+    ], { stdout: "ignore", stderr: "ignore" });
+
+    await ffmpeg.exited;
+
+    const tmpFile = Bun.file(tmpPath);
+    if (!(await tmpFile.exists())) return notFound("Remux failed");
 
     set.headers["Content-Type"] = "video/mp4";
     set.headers["Content-Disposition"] = `attachment; filename="${rec.id}.mp4"`;
-    return new Response(ffmpeg.stdout as ReadableStream);
+
+    // Clean up after 5 min — enough for the browser to finish downloading.
+    setTimeout(() => { try { rmSync(tmpPath); } catch { /* ignore */ } }, 5 * 60 * 1000);
+
+    return tmpFile;
   }, {
     query: t.Object({
       format: t.Optional(t.String()),

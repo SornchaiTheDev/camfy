@@ -42,6 +42,8 @@ export class CameraProcess {
   private stopped = false;
   private watcher: ReturnType<typeof watch> | null = null;
   private logLines: string[] = [];
+  private activeSegment: string | null = null; // abs path of segment currently being written
+  private archiveDir = "";
 
   getLogs(): string[] {
     return [...this.logLines];
@@ -88,6 +90,8 @@ export class CameraProcess {
     const camDir = join(this.storagePath, this.camera.id);
     const dateStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
     const archiveDir = join(camDir, dateStr);
+    this.archiveDir = archiveDir;
+    this.activeSegment = null;
     mkdirSync(archiveDir, { recursive: true }); // creates camDir + dateDir
 
     const args = buildFFmpegArgs(this.camera, this.chunkSecs, this.storagePath, dateStr);
@@ -137,6 +141,13 @@ export class CameraProcess {
     this.watcher = null;
     this.child = null;
 
+    // ffmpeg exited → the segment it was writing is now finalized. Register it.
+    if (this.activeSegment) {
+      const last = this.activeSegment;
+      this.activeSegment = null;
+      void this._onSegmentReady(last);
+    }
+
     if (this.stopped) return;
 
     const uptime = Date.now() - this.startedAt;
@@ -161,21 +172,20 @@ export class CameraProcess {
   }
 
   private _watchSegments(archiveDir: string) {
-    const debounceMap = new Map<string, ReturnType<typeof setTimeout>>();
-
     try {
-      // Watch archiveDir directly — recursive on Linux (inotify) doesn't work for subdirs
+      // Watch archiveDir directly — recursive on Linux (inotify) doesn't work for subdirs.
+      // A segment is only FINALIZED once the next one starts (HLS closes seg N before
+      // opening seg N+1). Probing a still-growing file yields a partial duration/size that
+      // never gets corrected, so we register the previous segment when a new one appears.
       this.watcher = watch(archiveDir, (_event, filename) => {
         if (!filename || !filename.endsWith(".ts")) return;
 
-        if (debounceMap.has(filename)) clearTimeout(debounceMap.get(filename)!);
-        debounceMap.set(
-          filename,
-          setTimeout(() => {
-            debounceMap.delete(filename);
-            this._onSegmentReady(join(archiveDir, filename));
-          }, 500)
-        );
+        const abs = join(archiveDir, filename);
+        if (abs === this.activeSegment) return; // still writing the current segment
+
+        const prev = this.activeSegment;
+        this.activeSegment = abs;
+        if (prev) void this._onSegmentReady(prev); // prev is now finalized
       });
     } catch (e) {
       console.warn(`[watch] Failed to watch ${archiveDir}:`, (e as Error).message);
@@ -188,18 +198,24 @@ export class CameraProcess {
       if (stat === 0) return;
 
       const relPath = relative(this.storagePath, absPath);
-      const now = new Date().toISOString();
       const id = nanoid();
 
       const duration = await probeDuration(absPath);
+      // Segment just finalized → start time = end (now) minus its duration.
+      const recordedAt = new Date(Date.now() - duration * 1000).toISOString();
 
+      // Upsert keyed on segment_path: if the segment was already seen, correct its
+      // duration/size to the finalized values instead of leaving a stale partial row.
       const stmt = db.prepare(
-        `INSERT OR IGNORE INTO recordings (id, camera_id, segment_path, duration_sec, size_bytes, recorded_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO recordings (id, camera_id, segment_path, duration_sec, size_bytes, recorded_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(segment_path) DO UPDATE SET
+           duration_sec = excluded.duration_sec,
+           size_bytes   = excluded.size_bytes`
       );
-      stmt.run(id, this.camera.id, relPath, duration, stat, now);
+      stmt.run(id, this.camera.id, relPath, duration, stat, recordedAt);
 
-      broadcast({ type: "new_segment", camera_id: this.camera.id, segment_path: relPath, recorded_at: now });
+      broadcast({ type: "new_segment", camera_id: this.camera.id, segment_path: relPath, recorded_at: recordedAt });
     } catch {
       // file may have been deleted already — silently ignore
     }
