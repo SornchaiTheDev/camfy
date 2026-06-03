@@ -104,16 +104,16 @@ export const camerasRoute = new Elysia({ prefix: "/api/cameras" })
       };
 
       add("name", body.name);
-      add("rtsp_url", body.rtsp_url ?? null);
+      add("rtsp_url", body.rtsp_url);
       if (body.enabled !== undefined) { fields.push("enabled = ?"); values.push(body.enabled ? 1 : 0); }
       add("grid_order", body.grid_order);
       add("grid_size", body.grid_size);
-      add("chunk_secs", body.chunk_secs ?? null);
-      add("onvif_host", body.onvif_host ?? null);
-      add("onvif_port", body.onvif_port ?? null);
-      add("onvif_username", body.onvif_username ?? null);
-      add("onvif_password", body.onvif_password ?? null);
-      add("onvif_profile_token", body.onvif_profile_token ?? null);
+      add("chunk_secs", body.chunk_secs);
+      add("onvif_host", body.onvif_host);
+      add("onvif_port", body.onvif_port);
+      add("onvif_username", body.onvif_username);
+      add("onvif_password", body.onvif_password);
+      add("onvif_profile_token", body.onvif_profile_token);
 
       if (fields.length > 0) {
         fields.push("updated_at = ?");
