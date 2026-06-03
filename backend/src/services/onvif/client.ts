@@ -11,6 +11,7 @@ export type OnvifProfile = {
   token: string;
   name: string;
   resolution?: { width: number; height: number };
+  ptz?: boolean;
 };
 
 export type OnvifDeviceInfo = {
@@ -88,6 +89,8 @@ export async function getProfiles(c: OnvifCredentials): Promise<OnvifProfile[]> 
       resolution: res
         ? { width: Number(res["Width"] ?? 0), height: Number(res["Height"] ?? 0) }
         : undefined,
+      // A profile carrying a PTZConfiguration means the camera supports PTZ on it
+      ptz: dig(pr, "PTZConfiguration") != null,
     };
   });
 }

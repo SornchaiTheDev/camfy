@@ -9,7 +9,7 @@ mkdirSync(join(dbPath, ".."), { recursive: true });
 const db = new Database(dbPath, { create: true });
 
 export function runMigrations() {
-  for (const file of ["001_initial.sql", "002_onvif.sql", "003_rtsp_nullable.sql", "004_onvif_defaults.sql", "005_onvif_serial.sql", "006_scan_interval.sql", "007_onvif_epr.sql"]) {
+  for (const file of ["001_initial.sql", "002_onvif.sql", "003_rtsp_nullable.sql", "004_onvif_defaults.sql", "005_onvif_serial.sql", "006_scan_interval.sql", "007_onvif_epr.sql", "008_ptz.sql"]) {
     const sql = readFileSync(join(import.meta.dir, "migrations", file), "utf8");
     for (const stmt of sql.split(";").map((s) => s.trim()).filter(Boolean)) {
       try {

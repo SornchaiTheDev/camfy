@@ -92,6 +92,7 @@ export async function autoRegisterCameras(
 
     const serial = deviceInfo?.serial || null;
     const eprUuid = device.eprUuid || null;
+    const ptz = profiles.some((p) => p.ptz) ? 1 : 0;
 
     // 1. Try match by EPR UUID (most stable — survives IP changes)
     const byEpr = eprUuid
@@ -109,6 +110,10 @@ export async function autoRegisterCameras(
       // Backfill EPR UUID if we now have it and it wasn't stored
       if (eprUuid && !existing.onvif_epr_uuid) {
         db.run("UPDATE cameras SET onvif_epr_uuid = ? WHERE id = ?", [eprUuid, existing.id]);
+      }
+      // Keep PTZ capability fresh
+      if (existing.onvif_ptz !== ptz) {
+        db.run("UPDATE cameras SET onvif_ptz = ? WHERE id = ?", [ptz, existing.id]);
       }
       if (existing.onvif_host === device.host && existing.onvif_port === device.port) {
         result.skipped.push(device.host);
@@ -134,9 +139,10 @@ export async function autoRegisterCameras(
     if (byIp) {
       // Backfill identifiers if now available
       const updates: string[] = [];
-      const params: (string | null)[] = [];
+      const params: (string | number | null)[] = [];
       if (eprUuid && !byIp.onvif_epr_uuid) { updates.push("onvif_epr_uuid = ?"); params.push(eprUuid); }
       if (serial && !byIp.onvif_serial) { updates.push("onvif_serial = ?"); params.push(serial); }
+      if (byIp.onvif_ptz !== ptz) { updates.push("onvif_ptz = ?"); params.push(ptz); }
       if (updates.length) {
         params.push(byIp.id);
         db.run(`UPDATE cameras SET ${updates.join(", ")} WHERE id = ?`, params);
@@ -159,9 +165,9 @@ export async function autoRegisterCameras(
       `INSERT INTO cameras
          (id, name, rtsp_url, enabled, grid_order, grid_size, chunk_secs,
           onvif_host, onvif_port, onvif_username, onvif_password, onvif_profile_token,
-          onvif_serial, onvif_epr_uuid, created_at, updated_at)
-       VALUES (?, ?, NULL, 1, ?, 'medium', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, gridOrder, device.host, device.port, username, password, profile.token, serial, eprUuid, now, now]
+          onvif_serial, onvif_epr_uuid, onvif_ptz, created_at, updated_at)
+       VALUES (?, ?, NULL, 1, ?, 'medium', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, gridOrder, device.host, device.port, username, password, profile.token, serial, eprUuid, ptz, now, now]
     );
 
     const camera = db.query<Camera, [string]>("SELECT * FROM cameras WHERE id = ?").get(id)!;

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { HLSPlayer } from "../player/HLSPlayer";
 import { Badge } from "../ui/Badge";
 import { useStreamStatusStore } from "../../store/stream-status";
@@ -46,11 +47,15 @@ export function CameraCell({ camera }: Props) {
   const wsStatus = useStreamStatusStore((s) => s.statuses.get(camera.id));
   const status = wsStatus ?? camera.status;
   const [editing, setEditing] = useState(false);
+  const navigate = useNavigate();
 
   const streamSrc = status === "recording" ? `/live/${camera.id}/live.m3u8` : null;
 
   return (
-    <div className="relative w-full h-full bg-gray-900 overflow-hidden group">
+    <div
+      className="relative w-full h-full bg-gray-900 overflow-hidden group cursor-pointer"
+      onClick={() => navigate(`/camera/${camera.id}`)}
+    >
       <HLSPlayer src={streamSrc} className="w-full h-full" />
 
       {/* Name + status overlay (online) */}
@@ -61,7 +66,7 @@ export function CameraCell({ camera }: Props) {
           <span
             className="text-white text-xs font-medium truncate drop-shadow cursor-pointer hover:underline"
             title="Click to rename"
-            onClick={() => setEditing(true)}
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
           >
             {camera.name}
           </span>
@@ -75,7 +80,7 @@ export function CameraCell({ camera }: Props) {
           <span
             className="text-gray-400 text-xs font-medium pointer-events-auto cursor-pointer hover:underline"
             title="Click to rename"
-            onClick={() => setEditing(true)}
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
           >
             {camera.name}
           </span>

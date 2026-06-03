@@ -69,6 +69,22 @@ export function useStopCamera() {
   });
 }
 
+export type PtzVelocity = { x: number; y: number; zoom: number };
+
+// Live PTZ control — no cache invalidation (it's motion, not persisted state).
+export function usePtzMove(cameraId: string) {
+  return useMutation({
+    mutationFn: (v: PtzVelocity) =>
+      apiFetch(`/api/onvif/${cameraId}/ptz/move`, { method: "POST", body: JSON.stringify(v) }),
+  });
+}
+
+export function usePtzStop(cameraId: string) {
+  return useMutation({
+    mutationFn: () => apiFetch(`/api/onvif/${cameraId}/ptz/stop`, { method: "POST" }),
+  });
+}
+
 export function useDiscoverOnvif() {
   return useMutation({
     mutationFn: () =>

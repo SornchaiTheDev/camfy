@@ -18,6 +18,7 @@ function serializeCamera(cam: Camera) {
   return {
     ...cam,
     enabled: cam.enabled === 1,
+    ptz_capable: cam.onvif_ptz === 1,
     status: ffmpegManager.getStatus(cam.id),
   };
 }
