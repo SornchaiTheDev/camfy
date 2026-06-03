@@ -69,11 +69,11 @@ function RecordingCard({
   const [thumbError, setThumbError] = useState(false);
 
   return (
-    <div className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
+    <div className="group relative flex sm:block bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
       {/* Thumbnail */}
       <button
         onClick={onPlay}
-        className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 block overflow-hidden"
+        className="relative w-36 shrink-0 sm:w-full aspect-video bg-gray-100 dark:bg-gray-800 block overflow-hidden"
       >
         {!thumbError ? (
           <img
@@ -105,7 +105,7 @@ function RecordingCard({
       </button>
 
       {/* Info row */}
-      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+      <div className="flex-1 min-w-0 px-3 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
         <div className="min-w-0">
           <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{camName}</div>
           <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-2">
@@ -114,7 +114,7 @@ function RecordingCard({
             <span>{formatBytes(rec.size_bytes)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0 self-end sm:self-auto">
           <a
             href={`/api/recordings/${rec.id}/download`}
             download={`${rec.id}.mp4`}
@@ -232,7 +232,7 @@ export function RecordingFeed({ recordings, cameras, hasNextPage, isFetchingNext
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                       {hourGroup.items.map((rec) => {
                         const cam = cameraMap.get(rec.camera_id);
                         return (
